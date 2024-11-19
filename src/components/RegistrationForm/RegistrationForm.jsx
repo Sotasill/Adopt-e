@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { GoogleLogin } from '@react-oauth/google';
+import { jwtDecode } from "jwt-decode";
 import { registerUser } from "../../redux/registration/registrationThunks";
 import {
   selectIsLoading,
@@ -27,34 +29,49 @@ const RegistrationForm = () => {
     dispatch(registerUser(userData)); // Отправляем данные на сервер через thunk
   };
 
+  const handleGoogleLoginSuccess = (response) => {
+    const userObject = jwtDecode(response.credential);
+    console.log('Google User:', userObject);
+  };
+
+  const handleGoogleLoginFailure = () => {
+    console.error('Google login failed');
+  };
+
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Registration Form</h2>
+    <div>
+      <form onSubmit={handleSubmit}>
+        <h2>Registration Form</h2>
 
-      <input
-        type="email"
-        name="email"
-        value={userData.email}
-        onChange={handleChange}
-        placeholder="Email"
-      />
-      <input
-        type="password"
-        name="password"
-        value={userData.password}
-        onChange={handleChange}
-        placeholder="Password"
-      />
+        <input
+          type="email"
+          name="email"
+          value={userData.email}
+          onChange={handleChange}
+          placeholder="Email"
+        />
+        <input
+          type="password"
+          name="password"
+          value={userData.password}
+          onChange={handleChange}
+          placeholder="Password"
+        />
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      {isLoading ? (
-        <button type="button" disabled>
-          Loading...
-        </button>
-      ) : (
-        <button type="submit">Register</button>
-      )}
-    </form>
+        {error && <p style={{ color: "red" }}>{error}</p>}
+        {isLoading ? (
+          <button type="button" disabled>
+            Loading...
+          </button>
+        ) : (
+          <button type="submit">Register</button>
+        )}
+      </form>
+      <GoogleLogin
+        onSuccess={handleGoogleLoginSuccess}
+        onError={handleGoogleLoginFailure}
+      />
+    </div>
   );
 };
 

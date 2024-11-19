@@ -1,49 +1,83 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { login } from "../../redux/auth/authActions";
 
 const LoginForm = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { loading, error } = useSelector(state => state.auth);
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Здесь можно добавить логику для проверки учетных данных
-    console.log("Email:", email);
-    console.log("Password:", password);
-    // После успешного входа перенаправляем пользователя на главную страницу
-    navigate("/");
+    
+    try {
+      await dispatch(login());
+      navigate('/MainBCS');
+    } catch (error) {
+      console.error('Login failed:', error);
+    }
   };
 
   return (
-    <div style={{ textAlign: "center", padding: "20px" }}>
-      <h1>Login</h1>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: "10px" }}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ padding: "10px", width: "200px" }}
-          />
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+      {error && (
+        <div style={{ color: 'red', marginBottom: '10px' }}>
+          {error}
         </div>
-        <div style={{ marginBottom: "10px" }}>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ padding: "10px", width: "200px" }}
-          />
-        </div>
-        <button type="submit" style={{ padding: "10px 20px" }}>
-          Log In
-        </button>
-      </form>
-    </div>
+      )}
+      
+      <div>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          required
+          style={{
+            width: '100%',
+            padding: '10px',
+            borderRadius: '4px',
+            border: '1px solid #ccc'
+          }}
+        />
+      </div>
+      
+      <div>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Пароль"
+          required
+          style={{
+            width: '100%',
+            padding: '10px',
+            borderRadius: '4px',
+            border: '1px solid #ccc'
+          }}
+        />
+      </div>
+      
+      <button 
+        type="submit" 
+        disabled={loading}
+        style={{
+          padding: '10px 20px',
+          backgroundColor: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          opacity: loading ? 0.7 : 1
+        }}
+      >
+        {loading ? 'Вход...' : 'Войти'}
+      </button>
+    </form>
   );
 };
 
