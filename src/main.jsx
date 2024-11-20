@@ -7,7 +7,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import store, { persistor } from "./redux/store";
 import App from './components/App/App'
 
-const GOOGLE_CLIENT_ID = "ваш_client_id" // Замените на ваш реальный Google Client ID
+const GOOGLE_CLIENT_ID = "получите_реальный_id_в_google_cloud_console"
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

@@ -2,79 +2,140 @@ import {
   LOGIN_REQUEST,
   LOGIN_SUCCESS,
   LOGIN_FAIL,
+  REGISTER_REQUEST,
+  REGISTER_SUCCESS,
+  REGISTER_FAIL,
   LOGOUT,
   CLEAR_ERRORS,
-  UPDATE_AVATAR_SUCCESS
+  UPDATE_AVATAR_SUCCESS,
+  UPDATE_AVATAR_FAIL
 } from "./authConstant";
-import { setTestUser } from "../../utils/testAuth";
-import { uploadProfileBackground } from '../../services/api';
+import { API_URLS } from '../../services/api';
+import { uploadProfileBackground } from '../services/uploadService';
+import axios from 'axios';
 
-export const login = () => async (dispatch) => {
+export const register = (userData) => async (dispatch) => {
   try {
-    dispatch({ type: LOGIN_REQUEST });
+    dispatch({ type: REGISTER_REQUEST });
 
-    const testData = setTestUser();
-    localStorage.setItem('user', JSON.stringify(testData.user));
+    const response = await fetch(`${API_URLS.AUTH}/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Ошибка регистрации');
+    }
+
+    localStorage.setItem('token', data.token);
     
     dispatch({
-      type: LOGIN_SUCCESS,
-      payload: testData.user,
+      type: REGISTER_SUCCESS,
+      payload: data.user
     });
 
     return Promise.resolve();
   } catch (error) {
-    localStorage.removeItem('user');
     dispatch({
-      type: LOGIN_FAIL,
-      payload: error.response?.data?.message || 'Ошибка входа',
+      type: REGISTER_FAIL,
+      payload: error.message
     });
     return Promise.reject(error);
   }
 };
 
-export const loginSuccess = (user) => ({
-  type: LOGIN_SUCCESS,
-  payload: user,
-});
+export const login = (userData) => async (dispatch) => {
+  try {
+    dispatch({ type: LOGIN_REQUEST });
+    
+    console.log('Попытка входа:', {
+      url: API_URLS.login,
+      baseURL: axios.defaults.baseURL,
+      userData
+    });
+
+    const response = await axios.post(API_URLS.login, userData);
+    
+    dispatch({
+      type: LOGIN_SUCCESS,
+      payload: response.data
+    });
+  } catch (error) {
+    console.error('Подробности ошибки:', {
+      message: error.message,
+      code: error.code,
+      config: {
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        method: error.config?.method
+      }
+    });
+
+    dispatch({
+      type: LOGIN_FAIL,
+      payload: 'Ошибка при входе'
+    });
+    throw error;
+  }
+};
 
 export const logout = () => (dispatch) => {
-  localStorage.removeItem('user');
+  localStorage.removeItem('token');
   dispatch({ type: LOGOUT });
 };
 
-export const clearErrors = () => ({
-  type: CLEAR_ERRORS,
-});
+export const checkAuth = () => async (dispatch) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      const response = await fetch(`${API_URLS.AUTH}/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-export const checkAuth = () => (dispatch) => {
-  const user = localStorage.getItem('user');
-  if (user) {
-    dispatch({
-      type: LOGIN_SUCCESS,
-      payload: JSON.parse(user)
-    });
+      if (response.ok) {
+        const userData = await response.json();
+        dispatch({
+          type: LOGIN_SUCCESS,
+          payload: userData
+        });
+      } else {
+        localStorage.removeItem('token');
+      }
+    } catch {
+      localStorage.removeItem('token');
+    }
   }
 };
 
-export const updateAvatar = (blob) => async (dispatch) => {
+export const updateAvatar = (avatarData) => async (dispatch) => {
   try {
-    const reader = new FileReader();
+    const response = await axios.post(API_URLS.updateAvatar, avatarData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     
-    reader.onloadend = () => {
-      const base64data = reader.result;
-      
+    if (response.data) {
       dispatch({
         type: UPDATE_AVATAR_SUCCESS,
-        payload: base64data
+        payload: response.data.avatarUrl
       });
-    };
-
-    reader.readAsDataURL(blob);
-    
-    return Promise.resolve();
+      return response.data;
+    }
   } catch (error) {
-    console.error('Ошибка обновления аватара:', error);
-    return Promise.reject(error);
+    console.error('Ошибка при обновлении аватара:', error);
+    dispatch({
+      type: UPDATE_AVATAR_FAIL,
+      payload: 'Ошибка при обновлении аватара'
+    });
+    throw error;
   }
 };
 
@@ -98,3 +159,17 @@ export const updateProfileBackground = (imageFile) => async (dispatch) => {
     throw error;
   }
 };
+
+export const clearErrors = () => ({
+  type: CLEAR_ERRORS
+});
+
+export const setAuthenticated = (isAuthenticated) => ({
+    type: 'SET_AUTHENTICATED',
+    payload: isAuthenticated
+});
+
+export const setAuth = (isAuthenticated) => ({
+  type: 'SET_AUTH',
+  payload: isAuthenticated
+});

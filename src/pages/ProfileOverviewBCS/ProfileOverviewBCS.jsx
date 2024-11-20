@@ -51,7 +51,7 @@ const ProfileOverview = ({ onAvatarClick }) => {
       
       <div className={styles.avatarSection}>
         <Avatar
-          src={user?.avatar}
+          src={user?.avatar || '/default-avatar.png'}
           onClick={onAvatarClick}
           className={styles.avatar}
         />

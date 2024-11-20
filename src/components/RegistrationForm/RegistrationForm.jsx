@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { GoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from "jwt-decode";
 import { registerUser } from "../../redux/registration/registrationThunks";
 import {
   selectIsLoading,
@@ -19,23 +17,37 @@ const RegistrationForm = () => {
     // другие поля для регистрации
   });
 
+  const [validationError, setValidationError] = useState("");
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setUserData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    dispatch(registerUser(userData)); // Отправляем данные на сервер через thunk
-  };
-
-  const handleGoogleLoginSuccess = (response) => {
-    const userObject = jwtDecode(response.credential);
-    console.log('Google User:', userObject);
-  };
-
-  const handleGoogleLoginFailure = () => {
-    console.error('Google login failed');
+    setValidationError("");
+    
+    console.log('Отправка данных:', userData);
+    
+    try {
+      const response = await dispatch(registerUser(userData));
+      
+      if (response.type.endsWith('/rejected')) {
+        throw new Error(response.payload?.message || 'Ошибка при регистрации');
+      }
+      
+      console.log('Регистрация успешна:', response.payload);
+      
+    } catch (error) {
+      console.error('Ошибка регистрации:', {
+        error: error.toString(),
+        userData: userData,
+        timestamp: new Date().toISOString()
+      });
+      
+      setValidationError(error.message);
+    }
   };
 
   return (
@@ -58,6 +70,7 @@ const RegistrationForm = () => {
           placeholder="Password"
         />
 
+        {validationError && <p style={{ color: "red" }}>{validationError}</p>}
         {error && <p style={{ color: "red" }}>{error}</p>}
         {isLoading ? (
           <button type="button" disabled>
@@ -67,10 +80,6 @@ const RegistrationForm = () => {
           <button type="submit">Register</button>
         )}
       </form>
-      <GoogleLogin
-        onSuccess={handleGoogleLoginSuccess}
-        onError={handleGoogleLoginFailure}
-      />
     </div>
   );
 };

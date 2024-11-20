@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate} from 'react-router-dom';
 import ProfileOverview from "../ProfileOverviewBCS/ProfileOverviewBCS";
@@ -8,6 +8,7 @@ import AvatarEditorComponent from "../../components/AvatarEditor/AvatarEditor";
 import { logout } from '../../redux/auth/authActions';
 import { Button, Container, Modal, Typography } from '@mui/material';
 import { updateAvatar, updateProfileBackground } from '../../redux/auth/authActions';
+import { setAuthenticated } from '../../redux/auth/authActions';
 import styles from './MainBCS.module.css';
 
 const MainBCSPage = () => {
@@ -20,7 +21,25 @@ const MainBCSPage = () => {
   const [isBackgroundEditing, setIsBackgroundEditing] = useState(false);
   const [selectedBackground, setSelectedBackground] = useState(null);
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const savedUser = JSON.parse(localStorage.getItem('user'));
+    
+    if (token && !isAuthenticated) {
+      dispatch(setAuthenticated(true));
+      if (savedUser) {
+        dispatch({
+          type: 'LOGIN_SUCCESS',
+          payload: savedUser
+        });
+      }
+    } else if (!token && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [dispatch, isAuthenticated, navigate]);
+
   const handleLogout = () => {
+    localStorage.removeItem('token');
     localStorage.removeItem('user');
     dispatch(logout());
     navigate('/');
@@ -28,7 +47,15 @@ const MainBCSPage = () => {
 
   const handleImageSelect = (event) => {
     if (event.target.files && event.target.files[0]) {
-      setSelectedImage(event.target.files[0]);
+      const file = event.target.files[0];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      if (file.size > maxSize) {
+        alert('Файл слишком большой. Максимальный размер 5MB');
+        return;
+      }
+
+      setSelectedImage(file);
       setIsEditing(true);
     }
   };
@@ -37,10 +64,8 @@ const MainBCSPage = () => {
     try {
       await dispatch(updateAvatar(blob));
       setIsEditing(false);
-      // Можно добавить уведомление об успешном обновлении
     } catch (error) {
       console.error('Ошибка при сохранении аватара:', error);
-      // Можно добавить уведомление об ошибке
     }
   };
 
@@ -61,7 +86,6 @@ const MainBCSPage = () => {
   };
 
   if (!isAuthenticated) {
-    navigate('/login');
     return null;
   }
 

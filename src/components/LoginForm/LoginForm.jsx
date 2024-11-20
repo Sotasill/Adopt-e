@@ -15,10 +15,11 @@ const LoginForm = () => {
     e.preventDefault();
     
     try {
-      await dispatch(login());
+      await dispatch(login({ email, password }));
+      console.log('Вход успешен, переход на главную страницу');
       navigate('/MainBCS');
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Ошибка входа:', error);
     }
   };
 
